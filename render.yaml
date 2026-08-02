@@ -1,0 +1,17 @@
+# Render 一键部署配置（配合仓库内的 “Deploy to Render” 按钮）
+# 点击按钮后，Render 会自动按此文件创建 Web 服务并运行 server.js
+# server.js 同时托管前端 PWA + Web Push 推送，部署后一个域名即可完整使用
+services:
+  - type: web
+    name: meal-reminder-app
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /
+    envVars:
+      - key: REMINDERS
+        value: "07:00,12:00,19:00"
+      # VAPID 公钥/私钥首次运行自动生成，无需手动配置即可一键上线
+      # 如需固化（避免容器重建后旧订阅失效），可在 Render 控制台追加：
+      #   VAPID_PUBLIC_KEY  /  VAPID_PRIVATE_KEY
