@@ -1,0 +1,1818 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#FF6B35">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="饭点打卡">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="favicon-32.png">
+<title>饭点打卡 · 每日三餐拍照记录</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  
+  :root {
+    --orange: #FF6B35;
+    --orange-light: #FF8F5E;
+    --orange-bg: #FFF4EF;
+    --yellow: #FFB627;
+    --green: #2EC4B6;
+    --green-light: #E8F8F6;
+    --red: #E63946;
+    --text: #2D2A26;
+    --text-sec: #8B8680;
+    --text-third: #B5B0AA;
+    --bg: #FAF7F5;
+    --card: #FFFFFF;
+    --border: #F0EBE7;
+    --shadow: 0 2px 12px rgba(45,42,38,0.06);
+    --shadow-lg: 0 8px 32px rgba(45,42,38,0.10);
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+  
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 80px;
+    overflow-x: hidden;
+  }
+  
+  /* ===== Top Bar ===== */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(250,247,245,0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    padding: 14px 20px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar-title {
+    font-size: 20px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .topbar-title .emoji { font-size: 22px; }
+  .topbar-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .icon-btn {
+    width: 38px; height: 38px;
+    border: none;
+    background: var(--card);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    box-shadow: var(--shadow);
+    transition: transform .15s;
+  }
+  .icon-btn:active { transform: scale(0.92); }
+  
+  /* ===== Views ===== */
+  .view { display: none; padding: 0 16px; }
+  .view.active { display: block; animation: fadeIn .3s; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  
+  /* ===== Hero Countdown ===== */
+  .hero {
+    background: linear-gradient(135deg, var(--orange) 0%, #FF8C42 100%);
+    border-radius: 24px;
+    padding: 28px 24px 24px;
+    margin-top: 12px;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 28px rgba(255,107,53,0.25);
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -30px;
+    width: 140px; height: 140px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 50%;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: -50px; right: 40px;
+    width: 100px; height: 100px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 50%;
+  }
+  .hero-label {
+    font-size: 14px;
+    opacity: 0.85;
+    font-weight: 500;
+  }
+  .hero-meal-name {
+    font-size: 26px;
+    font-weight: 800;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .hero-countdown {
+    font-size: 52px;
+    font-weight: 900;
+    letter-spacing: -2px;
+    margin-top: 10px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+  }
+  .hero-countdown .unit {
+    font-size: 20px;
+    font-weight: 600;
+    opacity: 0.8;
+    margin-left: 2px;
+  }
+  .hero-sub {
+    font-size: 13px;
+    opacity: 0.8;
+    margin-top: 6px;
+  }
+  
+  /* ===== Today Meals ===== */
+  .section-title {
+    font-size: 17px;
+    font-weight: 700;
+    margin: 24px 4px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .section-title .date {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-sec);
+  }
+  
+  .meal-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow);
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    transition: transform .15s, box-shadow .15s;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+  .meal-card:active { transform: scale(0.98); }
+  .meal-card.done {
+    border-left: 4px solid var(--green);
+  }
+  .meal-card.pending {
+    border-left: 4px solid var(--orange);
+  }
+  .meal-card.missed {
+    border-left: 4px solid var(--text-third);
+    opacity: 0.65;
+  }
+  
+  .meal-icon {
+    width: 52px; height: 52px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    flex-shrink: 0;
+  }
+  .meal-icon.breakfast { background: #FFF6E6; }
+  .meal-icon.lunch { background: var(--orange-bg); }
+  .meal-icon.dinner { background: #F0EBFF; }
+  
+  .meal-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .meal-name {
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .meal-time {
+    font-size: 13px;
+    color: var(--text-sec);
+    margin-top: 2px;
+  }
+  .meal-status {
+    font-size: 12px;
+    margin-top: 4px;
+    font-weight: 600;
+  }
+  .meal-status.done { color: var(--green); }
+  .meal-status.pending { color: var(--orange); }
+  .meal-status.missed { color: var(--text-third); }
+  
+  .meal-photo-thumb {
+    width: 56px; height: 56px;
+    border-radius: 12px;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+  .meal-photo-placeholder {
+    width: 56px; height: 56px;
+    border-radius: 12px;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    color: var(--text-third);
+    flex-shrink: 0;
+    border: 2px dashed var(--border);
+  }
+  
+  /* ===== Stats Row ===== */
+  .stats-row {
+    display: flex;
+    gap: 10px;
+    margin: 16px 4px 0;
+  }
+  .stat-card {
+    flex: 1;
+    background: var(--card);
+    border-radius: var(--radius-sm);
+    padding: 14px 10px;
+    text-align: center;
+    box-shadow: var(--shadow);
+  }
+  .stat-num {
+    font-size: 24px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-num.streak { color: var(--orange); }
+  .stat-num.today { color: var(--green); }
+  .stat-num.total { color: var(--text); }
+  .stat-label {
+    font-size: 11px;
+    color: var(--text-sec);
+    margin-top: 2px;
+  }
+  
+  /* ===== History View ===== */
+  .history-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-sec);
+  }
+  .history-empty .emoji { font-size: 48px; display: block; margin-bottom: 12px; }
+  
+  .history-item {
+    background: var(--card);
+    border-radius: var(--radius);
+    margin-bottom: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .history-date {
+    padding: 10px 14px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-sec);
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .history-date .weekday {
+    font-size: 12px;
+    color: var(--text-third);
+    font-weight: 500;
+  }
+  .history-meals {
+    display: flex;
+    gap: 8px;
+    padding: 10px 14px 14px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .history-meal {
+    flex-shrink: 0;
+    width: 110px;
+  }
+  .history-meal img {
+    width: 110px;
+    height: 110px;
+    border-radius: 12px;
+    object-fit: cover;
+    display: block;
+  }
+  .history-meal .h-name {
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 6px;
+    text-align: center;
+  }
+  .history-meal .h-time {
+    font-size: 11px;
+    color: var(--text-third);
+    text-align: center;
+  }
+  .history-meal.empty-slot {
+    width: 110px;
+    height: 110px;
+    border-radius: 12px;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    color: var(--border);
+  }
+  
+  /* ===== Camera Modal ===== */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 999;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    animation: fadeIn .2s;
+  }
+  .modal-overlay.active { display: flex; }
+  
+  .camera-panel {
+    width: 100%;
+    max-width: 500px;
+    background: #1a1a1a;
+    border-radius: 20px 20px 0 0;
+    overflow: hidden;
+    animation: slideUp .3s;
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  
+  .camera-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    color: #fff;
+  }
+  .camera-header .title { font-size: 16px; font-weight: 700; }
+  .camera-close {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 22px;
+    cursor: pointer;
+    padding: 4px 8px;
+  }
+  
+  .camera-preview {
+    width: 100%;
+    aspect-ratio: 4/3;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .camera-preview video, .camera-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .camera-preview .no-camera {
+    color: #666;
+    font-size: 14px;
+    text-align: center;
+    padding: 20px;
+  }
+  
+  .camera-actions {
+    padding: 18px;
+    display: flex;
+    gap: 12px;
+    background: #1a1a1a;
+  }
+  .btn-capture {
+    flex: 1;
+    height: 56px;
+    border: 3px solid #fff;
+    border-radius: 50%;
+    width: 56px;
+    margin: 0 auto;
+    background: rgba(255,255,255,0.15);
+    cursor: pointer;
+    transition: transform .15s;
+  }
+  .btn-capture:active { transform: scale(0.9); }
+  
+  .camera-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 18px 18px;
+    background: #1a1a1a;
+  }
+  .camera-btn {
+    padding: 10px 20px;
+    border-radius: 12px;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .camera-btn.primary {
+    background: var(--orange);
+    color: #fff;
+  }
+  .camera-btn.secondary {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+  }
+  .camera-btn.upload {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    font-size: 20px;
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* ===== Photo Viewer ===== */
+  .photo-viewer {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 20px;
+  }
+  .photo-viewer.active { display: flex; }
+  .photo-viewer img {
+    max-width: 100%;
+    max-height: 75vh;
+    border-radius: 12px;
+  }
+  .photo-viewer .pv-info {
+    color: #fff;
+    text-align: center;
+    margin-top: 16px;
+    font-size: 15px;
+  }
+  .photo-viewer .pv-close {
+    position: absolute;
+    top: 16px; right: 16px;
+    background: rgba(255,255,255,0.15);
+    border: none;
+    color: #fff;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    font-size: 20px;
+    cursor: pointer;
+  }
+  .photo-viewer .pv-delete {
+    margin-top: 16px;
+    background: var(--red);
+    color: #fff;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  
+  /* ===== Bottom Nav ===== */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding: 8px 0 20px;
+    z-index: 100;
+  }
+  .nav-item {
+    flex: 1;
+    text-align: center;
+    cursor: pointer;
+    padding: 6px 0;
+    transition: color .2s;
+    color: var(--text-third);
+  }
+  .nav-item.active { color: var(--orange); }
+  .nav-item .nav-icon { font-size: 22px; }
+  .nav-item .nav-label { font-size: 11px; font-weight: 600; margin-top: 2px; }
+  
+  /* ===== Settings ===== */
+  .setting-row {
+    background: var(--card);
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: var(--shadow);
+  }
+  .setting-row .label { font-size: 15px; font-weight: 600; }
+  .setting-row .desc { font-size: 12px; color: var(--text-sec); margin-top: 2px; }
+  .setting-row input[type="time"] {
+    font-size: 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 10px;
+    color: var(--text);
+    background: var(--bg);
+  }
+  
+  /* Toggle */
+  .toggle {
+    width: 48px; height: 28px;
+    background: #DDD;
+    border-radius: 14px;
+    position: relative;
+    cursor: pointer;
+    transition: background .2s;
+    flex-shrink: 0;
+  }
+  .toggle.on { background: var(--green); }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 22px; height: 22px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform .2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .toggle.on::after { transform: translateX(20px); }
+  
+  /* ===== Toast ===== */
+  .toast {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(45,42,38,0.92);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 24px;
+    font-size: 14px;
+    font-weight: 500;
+    opacity: 0;
+    transition: all .3s;
+    z-index: 2000;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  
+  /* ===== Meal note input ===== */
+  .note-input {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 14px;
+    margin-top: 10px;
+    background: var(--bg);
+    color: var(--text);
+    resize: none;
+    font-family: inherit;
+  }
+  
+  /* Notification banner */
+  .notif-banner {
+    background: var(--green-light);
+    border: 1px solid var(--green);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin: 12px 4px 0;
+    display: none;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--green);
+  }
+  .notif-banner.show { display: flex; }
+  .notif-banner .emoji { font-size: 18px; }
+  
+  /* ===== Weekly Report ===== */
+  .week-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin: 16px 4px 0;
+    box-shadow: var(--shadow);
+  }
+  .week-head { display: flex; align-items: center; justify-content: space-between; }
+  .week-title { font-size: 16px; font-weight: 700; }
+  .week-num { display: flex; align-items: baseline; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .week-num b { font-size: 30px; font-weight: 800; color: var(--orange); line-height: 1; }
+  .week-num .sub { font-size: 13px; color: var(--text-sec); }
+  .week-bar { height: 10px; background: var(--bg); border-radius: 6px; overflow: hidden; margin-top: 12px; }
+  .week-bar-fill { height: 100%; background: linear-gradient(90deg, var(--orange), #FF8C42); border-radius: 6px; transition: width .4s; }
+  .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 14px; }
+  .week-cell { text-align: center; }
+  .week-cell .dow { font-size: 11px; color: var(--text-sec); }
+  .week-cell .box {
+    margin-top: 4px; aspect-ratio: 1; border-radius: 10px; background: var(--bg);
+    display: flex; align-items: center; justify-content: center; font-size: 18px;
+    overflow: hidden; border: 2px solid transparent; color: var(--text-third);
+  }
+  .week-cell.done .box { border-color: var(--green); background: var(--green-light); }
+  .week-cell .cnt { font-size: 10px; color: var(--text-third); margin-top: 3px; }
+  .week-share-btn {
+    margin-top: 14px; width: 100%; background: linear-gradient(135deg, var(--orange), #FF8C42);
+    color: #fff; border: none; border-radius: 12px; padding: 12px; font-size: 15px; font-weight: 700; cursor: pointer;
+    box-shadow: 0 4px 14px rgba(255,107,53,0.25);
+  }
+  .week-share-btn:active { transform: scale(0.98); }
+
+  /* ===== Setting input ===== */
+  .setting-input {
+    width: 100%; border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; font-size: 13px; margin-top: 10px; background: var(--bg); color: var(--text);
+  }
+  .setting-note { font-size: 11px; color: var(--text-sec); margin-top: 6px; line-height: 1.5; }
+  .setting-note code { background: var(--bg); padding: 1px 5px; border-radius: 4px; font-size: 11px; }
+
+  @media (max-width: 380px) {
+    .hero-countdown { font-size: 44px; }
+    .hero-meal-name { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== Top Bar ===== -->
+<div class="topbar">
+  <div class="topbar-title">
+    <span class="emoji">🍽️</span>
+    <span id="appTitle">饭点打卡</span>
+  </div>
+  <div class="topbar-actions">
+    <button class="icon-btn" onclick="switchView('home')" title="首页">🏠</button>
+    <button class="icon-btn" onclick="switchView('history')" title="历史">📅</button>
+    <button class="icon-btn" onclick="switchView('settings')" title="设置">⚙️</button>
+  </div>
+</div>
+
+<!-- ===== Home View ===== -->
+<div class="view active" id="view-home">
+  <div class="hero" id="heroCard">
+    <div class="hero-label" id="heroLabel">距离下一顿还有</div>
+    <div class="hero-meal-name" id="heroMealName">🌅 早餐</div>
+    <div class="hero-countdown" id="heroCountdown">--:--<span class="unit">:--</span></div>
+    <div class="hero-sub" id="heroSub">开启通知提醒，不错过每一餐</div>
+  </div>
+  
+  <div class="notif-banner" id="notifBanner">
+    <span class="emoji">🔔</span>
+    <span id="notifBannerText">点击开启通知提醒</span>
+  </div>
+  
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-num streak" id="statStreak">0</div>
+      <div class="stat-label">连续打卡(天)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num today" id="statToday">0/3</div>
+      <div class="stat-label">今日完成</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num total" id="statTotal">0</div>
+      <div class="stat-label">累计记录</div>
+    </div>
+  </div>
+  
+  <div class="section-title">
+    <span>今日三餐</span>
+    <span class="date" id="todayDate"></span>
+  </div>
+  
+  <div id="mealList"></div>
+
+  <!-- 本周打卡统计 -->
+  <div class="week-card" id="weekSection"></div>
+</div>
+
+<!-- ===== History View ===== -->
+<div class="view" id="view-history">
+  <div class="section-title" style="margin-top: 12px;">
+    <span>📅 历史记录</span>
+    <span class="date" id="historyCount"></span>
+  </div>
+  <div id="historyList"></div>
+</div>
+
+<!-- ===== Settings View ===== -->
+<div class="view" id="view-settings">
+  <div class="section-title" style="margin-top: 12px;">
+    <span>⚙️ 设置</span>
+  </div>
+  
+  <div class="setting-row">
+    <div>
+      <div class="label">🔔 通知提醒</div>
+      <div class="desc">饭点时推送浏览器通知</div>
+    </div>
+    <div class="toggle" id="toggleNotif" onclick="toggleNotifications()"></div>
+  </div>
+
+  <div class="setting-row" style="flex-direction: column; align-items: stretch;">
+    <div style="display:flex; align-items:center; justify-content: space-between;">
+      <div>
+        <div class="label">📡 后台推送（关页面也提醒）</div>
+        <div class="desc" id="pushDesc">需额外部署推送服务，开启后即使 App 关闭也会准时提醒</div>
+      </div>
+      <div class="toggle" id="togglePush" onclick="togglePush()"></div>
+    </div>
+    <input class="setting-input" id="pushUrl" placeholder="https://你的推送服务地址（如 xxx.onrender.com）" onchange="savePushUrl()">
+    <div class="setting-note">静态站点（Vercel/Netlify）无法自己推送，需把 <code>server.js</code> 部署到 Render/Railway 等支持 Node 的平台，再把地址填这里。留空则仅页面内提醒。</div>
+  </div>
+  
+  <div class="setting-row">
+    <div>
+      <div class="label">🌅 早餐时间</div>
+      <div class="desc">提醒拍照打卡的时间</div>
+    </div>
+    <input type="time" id="timeBreakfast" value="07:00" onchange="saveMealTimes()">
+  </div>
+  
+  <div class="setting-row">
+    <div>
+      <div class="label">☀️ 午餐时间</div>
+      <div class="desc">提醒拍照打卡的时间</div>
+    </div>
+    <input type="time" id="timeLunch" value="12:00" onchange="saveMealTimes()">
+  </div>
+  
+  <div class="setting-row">
+    <div>
+      <div class="label">🌙 晚餐时间</div>
+      <div class="desc">提醒拍照打卡的时间</div>
+    </div>
+    <input type="time" id="timeDinner" value="19:00" onchange="saveMealTimes()">
+  </div>
+  
+  <div class="setting-row" style="cursor:pointer;" onclick="clearAllData()">
+    <div>
+      <div class="label" style="color: var(--red);">🗑️ 清除所有记录</div>
+      <div class="desc">删除全部餐食照片和数据</div>
+    </div>
+    <span style="color: var(--text-third); font-size: 20px;">›</span>
+  </div>
+  
+  <div style="text-align:center; padding: 30px 20px; color: var(--text-third); font-size: 12px;">
+    饭点打卡 v1.0<br>每日三餐 · 拍照记录 · 健康饮食
+  </div>
+</div>
+
+<!-- ===== Camera Modal ===== -->
+<div class="modal-overlay" id="cameraModal">
+  <div class="camera-panel">
+    <div class="camera-header">
+      <span class="title" id="cameraTitle">📸 拍照打卡</span>
+      <button class="camera-close" onclick="closeCamera()">✕</button>
+    </div>
+    <div class="camera-preview" id="cameraPreview">
+      <div class="no-camera" id="noCameraMsg">
+        📷 正在启动相机...<br>如果无法访问，请点击下方上传按钮
+      </div>
+      <video id="cameraVideo" autoplay playsinline style="display:none;"></video>
+      <img id="cameraCapture" style="display:none;">
+    </div>
+    <div class="camera-controls" id="cameraControlsCapture">
+      <button class="camera-btn upload" onclick="document.getElementById('fileInput').click()">📁</button>
+      <button class="btn-capture" onclick="capturePhoto()"></button>
+      <div style="width:44px;"></div>
+    </div>
+    <div class="camera-controls" id="cameraControlsConfirm" style="display:none;">
+      <button class="camera-btn secondary" onclick="retakePhoto()">重拍</button>
+      <button class="camera-btn primary" onclick="confirmPhoto()">确认保存</button>
+    </div>
+    <div style="padding: 0 18px 18px; background:#1a1a1a;">
+      <textarea class="note-input" id="mealNote" placeholder="今天吃了什么？加个备注吧～" rows="2" style="background:rgba(255,255,255,0.08); color:#fff; border-color:rgba(255,255,255,0.15);"></textarea>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="handleFileUpload(event)">
+
+<!-- ===== Photo Viewer ===== -->
+<div class="photo-viewer" id="photoViewer">
+  <button class="pv-close" onclick="closePhotoViewer()">✕</button>
+  <img id="pvImage" src="">
+  <div class="pv-info" id="pvInfo"></div>
+  <button class="pv-delete" onclick="deleteMealPhoto()">删除记录</button>
+</div>
+
+<!-- ===== Toast ===== -->
+<div class="toast" id="toast"></div>
+
+<!-- ===== Bottom Nav ===== -->
+<div class="bottom-nav">
+  <div class="nav-item active" onclick="switchView('home')">
+    <div class="nav-icon">🏠</div>
+    <div class="nav-label">首页</div>
+  </div>
+  <div class="nav-item" onclick="switchView('history')">
+    <div class="nav-icon">📅</div>
+    <div class="nav-label">历史</div>
+  </div>
+  <div class="nav-item" onclick="switchView('settings')">
+    <div class="nav-icon">⚙️</div>
+    <div class="nav-label">设置</div>
+  </div>
+</div>
+
+<script>
+// ===== State =====
+const STORAGE_KEY = 'mealReminderData';
+const SETTINGS_KEY = 'mealReminderSettings';
+const MEALS = [
+  { key: 'breakfast', name: '早餐', emoji: '🌅', defaultTime: '07:00' },
+  { key: 'lunch', name: '午餐', emoji: '☀️', defaultTime: '12:00' },
+  { key: 'dinner', name: '晚餐', emoji: '🌙', defaultTime: '19:00' }
+];
+
+let settings = loadSettings();
+let currentMealKey = null;
+let currentStream = null;
+let capturedBlob = null;
+let viewingMeal = null;
+let countdownInterval = null;
+let checkInterval = null;
+
+// ===== Storage (IndexedDB) =====
+// 照片 base64 较占空间，localStorage 仅约 5MB 配额；IndexedDB 配额大得多，且换设备/清缓存影响更小。
+const DB_NAME = 'mealReminderDB';
+const DB_VERSION = 1;
+const STORE_DAYS = 'days';
+let db = null;
+let memoryData = {};  // 内存缓存：{ dateKey: { mealKey: {photo,note,time,timestamp} } }，渲染时同步读取
+
+function openDB() {
+  return new Promise((resolve) => {
+    if (!('indexedDB' in window)) { resolve(null); return; }
+    try {
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = (e) => {
+        const d = e.target.result;
+        if (!d.objectStoreNames.contains(STORE_DAYS)) {
+          d.createObjectStore(STORE_DAYS, { keyPath: 'dateKey' });
+        }
+      };
+      req.onsuccess = () => { db = req.result; resolve(db); };
+      req.onerror = () => { console.warn('IndexedDB 打开失败', req.error); resolve(null); };
+    } catch(e) { resolve(null); }
+  });
+}
+
+function loadAllFromDB() {
+  return new Promise((resolve) => {
+    if (!db) { resolve({}); return; }
+    try {
+      const req = db.transaction(STORE_DAYS, 'readonly').objectStore(STORE_DAYS).getAll();
+      req.onsuccess = () => {
+        const map = {};
+        (req.result || []).forEach(rec => { if (rec && rec.dateKey) map[rec.dateKey] = rec.day || {}; });
+        memoryData = map;
+        resolve(map);
+      };
+      req.onerror = () => resolve({});
+    } catch(e) { resolve({}); }
+  });
+}
+
+function saveData(data) {
+  memoryData = data;
+  if (!db) return;
+  try {
+    const tx = db.transaction(STORE_DAYS, 'readwrite');
+    const store = tx.objectStore(STORE_DAYS);
+    Object.keys(data).forEach(k => {
+      if (data[k] && Object.keys(data[k]).length > 0) store.put({ dateKey: k, day: data[k] });
+      else store.delete(k);
+    });
+  } catch(e) { console.warn('保存失败', e); }
+}
+
+function clearAllDataStore() {
+  memoryData = {};
+  if (!db) return;
+  try { db.transaction(STORE_DAYS, 'readwrite').objectStore(STORE_DAYS).clear(); } catch(e){}
+}
+
+function loadData() { return memoryData; }
+
+function loadSettings() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+    return {
+      notifications: s.notifications || false,
+      times: s.times || { breakfast: '07:00', lunch: '12:00', dinner: '19:00' },
+      pushUrl: s.pushUrl || ''
+    };
+  } catch(e) {
+    return { notifications: false, times: { breakfast: '07:00', lunch: '12:00', dinner: '19:00' }, pushUrl: '' };
+  }
+}
+function saveSettings() {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+}
+
+// ===== Date Utils =====
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function formatDate(d) {
+  const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  const days = ['日','一','二','三','四','五','六'];
+  return `${d.getMonth()+1}月${d.getDate()}日 周${days[d.getDay()]}`;
+}
+function getMealTime(key) {
+  return settings.times[key] || MEALS.find(m=>m.key===key).defaultTime;
+}
+
+// ===== Meal Status =====
+function getMealStatus(key) {
+  const data = loadData();
+  const today = data[todayKey()] || {};
+  const meal = today[key];
+  const now = new Date();
+  const [h, m] = getMealTime(key).split(':').map(Number);
+  const mealTime = new Date();
+  mealTime.setHours(h, m, 0, 0);
+  
+  if (meal && meal.photo) return 'done';
+  if (now < mealTime) return 'pending';
+  // Give 2 hour window before marking missed
+  const windowEnd = new Date(mealTime);
+  windowEnd.setHours(windowEnd.getHours() + 2);
+  if (now < windowEnd) return 'pending';
+  return 'missed';
+}
+
+// ===== Render Home =====
+function renderHome() {
+  // Hero countdown
+  updateCountdown();
+  
+  // Today date
+  document.getElementById('todayDate').textContent = formatDate(new Date());
+  
+  // Meal cards
+  const list = document.getElementById('mealList');
+  list.innerHTML = '';
+  const data = loadData();
+  const today = data[todayKey()] || {};
+  
+  MEALS.forEach(meal => {
+    const status = getMealStatus(meal.key);
+    const record = today[meal.key];
+    const time = getMealTime(meal.key);
+    
+    const card = document.createElement('div');
+    card.className = `meal-card ${status}`;
+    card.onclick = () => openCamera(meal.key);
+    
+    let photoHtml = '';
+    if (record && record.photo) {
+      photoHtml = `<img class="meal-photo-thumb" src="${record.photo}" alt="${meal.name}">`;
+    } else {
+      photoHtml = `<div class="meal-photo-placeholder">📷</div>`;
+    }
+    
+    let statusText = '';
+    let statusClass = status;
+    if (status === 'done') {
+      statusText = record.note ? `✅ ${record.note.slice(0,12)}${record.note.length>12?'…':''}` : '✅ 已打卡';
+    } else if (status === 'pending') {
+      statusText = '⏳ 待打卡';
+    } else {
+      statusText = '⊘ 错过';
+    }
+    
+    card.innerHTML = `
+      <div class="meal-icon ${meal.key}">${meal.emoji}</div>
+      <div class="meal-info">
+        <div class="meal-name">${meal.name}</div>
+        <div class="meal-time">🕐 ${time}</div>
+        <div class="meal-status ${statusClass}">${statusText}</div>
+      </div>
+      ${photoHtml}
+    `;
+    list.appendChild(card);
+  });
+  
+  // Stats
+  renderStats();
+  
+  // Notification banner
+  updateNotifBanner();
+
+  // Weekly report
+  renderWeek();
+}
+
+function updateCountdown() {
+  const now = new Date();
+  let nextMeal = null;
+  let nextTime = null;
+  
+  for (const meal of MEALS) {
+    const [h, m] = getMealTime(meal.key).split(':').map(Number);
+    const t = new Date();
+    t.setHours(h, m, 0, 0);
+    if (t > now) {
+      nextMeal = meal;
+      nextTime = t;
+      break;
+    }
+  }
+  
+  // If all meals passed today, next is tomorrow's breakfast
+  if (!nextMeal) {
+    nextMeal = MEALS[0];
+    nextTime = new Date();
+    const [h, m] = getMealTime('breakfast').split(':').map(Number);
+    nextTime.setDate(nextTime.getDate() + 1);
+    nextTime.setHours(h, m, 0, 0);
+    document.getElementById('heroLabel').textContent = '明天早餐还有';
+  } else {
+    // Check if already done
+    const data = loadData();
+    const today = data[todayKey()] || {};
+    if (today[nextMeal.key] && today[nextMeal.key].photo) {
+      document.getElementById('heroLabel').textContent = '下一顿还没吃';
+    } else {
+      document.getElementById('heroLabel').textContent = '距离下一顿还有';
+    }
+  }
+  
+  document.getElementById('heroMealName').textContent = `${nextMeal.emoji} ${nextMeal.name} · ${getMealTime(nextMeal.key)}`;
+  
+  const diff = nextTime - now;
+  const hours = Math.floor(diff / 3600000);
+  const mins = Math.floor((diff % 3600000) / 60000);
+  const secs = Math.floor((diff % 60000) / 1000);
+  
+  document.getElementById('heroCountdown').innerHTML = 
+    `${String(hours).padStart(2,'0')}<span class="unit">时</span>${String(mins).padStart(2,'0')}<span class="unit">分</span>${String(secs).padStart(2,'0')}<span class="unit">秒</span>`;
+  
+  // Sub text
+  const data = loadData();
+  const today = data[todayKey()] || {};
+  const doneCount = MEALS.filter(m => today[m.key] && today[m.key].photo).length;
+  if (doneCount === 3) {
+    document.getElementById('heroSub').textContent = '🎉 今天三餐全部打卡完成！';
+  } else {
+    document.getElementById('heroSub').textContent = `今天已完成 ${doneCount}/3 餐打卡`;
+  }
+}
+
+function renderStats() {
+  const data = loadData();
+  
+  // Today count
+  const today = data[todayKey()] || {};
+  const todayDone = MEALS.filter(m => today[m.key] && today[m.key].photo).length;
+  document.getElementById('statToday').textContent = `${todayDone}/3`;
+  
+  // Total
+  let total = 0;
+  Object.values(data).forEach(day => {
+    MEALS.forEach(m => { if (day[m.key] && day[m.key].photo) total++; });
+  });
+  document.getElementById('statTotal').textContent = total;
+  
+  // Streak
+  let streak = 0;
+  const d = new Date();
+  while (true) {
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const day = data[key];
+    if (day && MEALS.some(m => day[m.key] && day[m.key].photo)) {
+      streak++;
+      d.setDate(d.getDate() - 1);
+    } else {
+      // If today has no records yet, don't break streak
+      if (key === todayKey() && streak === 0) {
+        d.setDate(d.getDate() - 1);
+        continue;
+      }
+      break;
+    }
+  }
+  document.getElementById('statStreak').textContent = streak;
+}
+
+function updateNotifBanner() {
+  const banner = document.getElementById('notifBanner');
+  if (!settings.notifications && 'Notification' in window && Notification.permission === 'default') {
+    banner.classList.add('show');
+    document.getElementById('notifBannerText').textContent = '点击开启通知提醒，饭点准时推送';
+    banner.onclick = () => toggleNotifications();
+  } else {
+    banner.classList.remove('show');
+  }
+}
+
+// ===== History =====
+function renderHistory() {
+  const data = loadData();
+  const dates = Object.keys(data).sort().reverse();
+  const list = document.getElementById('historyList');
+  
+  if (dates.length === 0) {
+    list.innerHTML = `
+      <div class="history-empty">
+        <span class="emoji">🍽️</span>
+        <p>还没有历史记录<br>快去拍照打卡吧！</p>
+      </div>
+    `;
+    document.getElementById('historyCount').textContent = '';
+    return;
+  }
+  
+  let totalMeals = 0;
+  list.innerHTML = '';
+  
+  dates.forEach(dateKey => {
+    const day = data[dateKey];
+    const [y, m, d] = dateKey.split('-').map(Number);
+    const date = new Date(y, m-1, d);
+    const days = ['日','一','二','三','四','五','六'];
+    
+    const item = document.createElement('div');
+    item.className = 'history-item';
+    
+    let mealsHtml = '';
+    MEALS.forEach(meal => {
+      const record = day[meal.key];
+      if (record && record.photo) {
+        totalMeals++;
+        mealsHtml += `
+          <div class="history-meal" onclick="viewPhoto('${dateKey}','${meal.key}')">
+            <img src="${record.photo}" alt="${meal.name}">
+            <div class="h-name">${meal.emoji} ${meal.name}</div>
+            <div class="h-time">${record.time || ''}</div>
+          </div>
+        `;
+      } else {
+        mealsHtml += `<div class="history-meal empty-slot">${meal.emoji}</div>`;
+      }
+    });
+    
+    item.innerHTML = `
+      <div class="history-date">
+        <span>${m}月${d}日 周${days[date.getDay()]}</span>
+        <span class="weekday">${y}</span>
+      </div>
+      <div class="history-meals">${mealsHtml}</div>
+    `;
+    list.appendChild(item);
+  });
+  
+  document.getElementById('historyCount').textContent = `共 ${totalMeals} 餐`;
+}
+
+// ===== Camera =====
+async function openCamera(mealKey) {
+  currentMealKey = mealKey;
+  capturedBlob = null;
+  const meal = MEALS.find(m => m.key === mealKey);
+  document.getElementById('cameraTitle').textContent = `📸 ${meal.emoji} ${meal.name}打卡`;
+  document.getElementById('mealNote').value = '';
+  document.getElementById('cameraCapture').style.display = 'none';
+  document.getElementById('cameraVideo').style.display = 'none';
+  document.getElementById('noCameraMsg').style.display = 'block';
+  document.getElementById('noCameraMsg').innerHTML = '📷 正在启动相机...<br>如果无法访问，请点击下方上传按钮 📁';
+  document.getElementById('cameraControlsCapture').style.display = 'flex';
+  document.getElementById('cameraControlsConfirm').style.display = 'none';
+  
+  // Check if already has a photo -> prefill note
+  const data = loadData();
+  const today = data[todayKey()] || {};
+  if (today[mealKey] && today[mealKey].note) {
+    document.getElementById('mealNote').value = today[mealKey].note;
+  }
+  
+  document.getElementById('cameraModal').classList.add('active');
+  
+  // Try to start camera
+  try {
+    currentStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment' },
+      audio: false
+    });
+    const video = document.getElementById('cameraVideo');
+    video.srcObject = currentStream;
+    video.style.display = 'block';
+    document.getElementById('noCameraMsg').style.display = 'none';
+  } catch(e) {
+    document.getElementById('noCameraMsg').innerHTML = '📷 无法访问相机<br>请点击下方 📁 上传照片';
+  }
+}
+
+function closeCamera() {
+  document.getElementById('cameraModal').classList.remove('active');
+  if (currentStream) {
+    currentStream.getTracks().forEach(t => t.stop());
+    currentStream = null;
+  }
+  capturedBlob = null;
+}
+
+function capturePhoto() {
+  const video = document.getElementById('cameraVideo');
+  if (!video.srcObject || video.style.display === 'none') {
+    showToast('请先允许相机权限，或点击 📁 上传照片');
+    return;
+  }
+  
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0);
+  
+  canvas.toBlob(blob => {
+    capturedBlob = blob;
+    const url = URL.createObjectURL(blob);
+    const img = document.getElementById('cameraCapture');
+    img.src = url;
+    img.style.display = 'block';
+    video.style.display = 'none';
+    document.getElementById('cameraControlsCapture').style.display = 'none';
+    document.getElementById('cameraControlsConfirm').style.display = 'flex';
+    
+    // Stop camera
+    if (currentStream) {
+      currentStream.getTracks().forEach(t => t.stop());
+      currentStream = null;
+    }
+  }, 'image/jpeg', 0.85);
+}
+
+function retakePhoto() {
+  capturedBlob = null;
+  document.getElementById('cameraCapture').style.display = 'none';
+  document.getElementById('cameraControlsCapture').style.display = 'flex';
+  document.getElementById('cameraControlsConfirm').style.display = 'none';
+  openCamera(currentMealKey);
+}
+
+function confirmPhoto() {
+  if (!capturedBlob) {
+    showToast('请先拍照或上传照片');
+    return;
+  }
+  
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const photoData = e.target.result;
+    const note = document.getElementById('mealNote').value.trim();
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    
+    const data = loadData();
+    if (!data[todayKey()]) data[todayKey()] = {};
+    data[todayKey()][currentMealKey] = {
+      photo: photoData,
+      note: note,
+      time: timeStr,
+      timestamp: now.getTime()
+    };
+    saveData(data);
+    
+    closeCamera();
+    showToast(`✅ ${MEALS.find(m=>m.key===currentMealKey).name}打卡成功！`);
+    renderHome();
+  };
+  reader.readAsDataURL(capturedBlob);
+}
+
+function handleFileUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = document.getElementById('cameraCapture');
+    img.src = e.target.result;
+    img.style.display = 'block';
+    document.getElementById('cameraVideo').style.display = 'none';
+    document.getElementById('noCameraMsg').style.display = 'none';
+    document.getElementById('cameraControlsCapture').style.display = 'none';
+    document.getElementById('cameraControlsConfirm').style.display = 'flex';
+    
+    // Convert to blob
+    fetch(e.target.result).then(r => r.blob()).then(blob => {
+      capturedBlob = blob;
+    });
+  };
+  reader.readAsDataURL(file);
+  event.target.value = ''; // Reset for reuse
+}
+
+// ===== Photo Viewer =====
+function viewPhoto(dateKey, mealKey) {
+  const data = loadData();
+  const day = data[dateKey];
+  if (!day || !day[mealKey]) return;
+  
+  const record = day[mealKey];
+  const meal = MEALS.find(m => m.key === mealKey);
+  viewingMeal = { dateKey, mealKey };
+  
+  document.getElementById('pvImage').src = record.photo;
+  const [y, m, d] = dateKey.split('-').map(Number);
+  document.getElementById('pvInfo').innerHTML = 
+    `${meal.emoji} ${meal.name} · ${m}月${d}日 ${record.time || ''}` +
+    (record.note ? `<br><span style="opacity:0.7">${record.note}</span>` : '');
+  document.getElementById('photoViewer').classList.add('active');
+}
+
+function closePhotoViewer() {
+  document.getElementById('photoViewer').classList.remove('active');
+  viewingMeal = null;
+}
+
+function deleteMealPhoto() {
+  if (!viewingMeal) return;
+  const data = loadData();
+  if (data[viewingMeal.dateKey]) {
+    delete data[viewingMeal.dateKey][viewingMeal.mealKey];
+    if (Object.keys(data[viewingMeal.dateKey]).length === 0) {
+      delete data[viewingMeal.dateKey];
+    }
+    saveData(data);
+  }
+  closePhotoViewer();
+  showToast('已删除记录');
+  renderHome();
+  renderHistory();
+}
+
+// ===== Notifications =====
+async function toggleNotifications() {
+  if (!('Notification' in window)) {
+    showToast('您的浏览器不支持通知功能');
+    return;
+  }
+  
+  if (settings.notifications) {
+    settings.notifications = false;
+    saveSettings();
+    document.getElementById('toggleNotif').classList.remove('on');
+    showToast('已关闭通知提醒');
+    updateNotifBanner();
+  } else {
+    const perm = await Notification.requestPermission();
+    if (perm === 'granted') {
+      settings.notifications = true;
+      saveSettings();
+      document.getElementById('toggleNotif').classList.add('on');
+      showToast('✅ 通知已开启，饭点会提醒你！');
+      updateNotifBanner();
+      
+      // Test notification
+      new Notification('🍽️ 饭点打卡已开启', {
+        body: '每天早7点、午12点、晚7点提醒你拍照记录三餐',
+        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🍽️</text></svg>'
+      });
+    } else {
+      showToast('通知权限被拒绝，请在浏览器设置中允许');
+    }
+  }
+}
+
+function checkMealReminders() {
+  if (!settings.notifications || Notification.permission !== 'granted') return;
+  
+  const now = new Date();
+  const currentH = now.getHours();
+  const currentM = now.getMinutes();
+  const currentTimeStr = `${String(currentH).padStart(2,'0')}:${String(currentM).padStart(2,'0')}`;
+  
+  const data = loadData();
+  const today = data[todayKey()] || {};
+  const lastNotifKey = `notif_${todayKey()}`;
+  const lastNotif = localStorage.getItem(lastNotifKey) || '';
+  
+  MEALS.forEach(meal => {
+    const mealTime = getMealTime(meal.key);
+    if (currentTimeStr === mealTime && !lastNotif.includes(meal.key)) {
+      // Check if already has photo
+      if (!today[meal.key] || !today[meal.key].photo) {
+        new Notification(`${meal.emoji} ${meal.name}时间到啦！`, {
+          body: '快拍张照片记录今天吃了什么吧～',
+          icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">' + meal.emoji + '</text></svg>',
+          tag: meal.key,
+          requireInteraction: true
+        });
+        localStorage.setItem(lastNotifKey, lastNotif + ',' + meal.key);
+      }
+    }
+  });
+}
+
+// ===== Settings =====
+function renderSettings() {
+  document.getElementById('toggleNotif').classList.toggle('on', settings.notifications);
+  document.getElementById('timeBreakfast').value = settings.times.breakfast;
+  document.getElementById('timeLunch').value = settings.times.lunch;
+  document.getElementById('timeDinner').value = settings.times.dinner;
+  document.getElementById('pushUrl').value = settings.pushUrl || '';
+  if (!pushSupported) {
+    document.getElementById('pushDesc').textContent = '当前浏览器不支持 Web Push（建议用 Chrome/Edge 访问）';
+  }
+}
+
+function saveMealTimes() {
+  settings.times.breakfast = document.getElementById('timeBreakfast').value;
+  settings.times.lunch = document.getElementById('timeLunch').value;
+  settings.times.dinner = document.getElementById('timeDinner').value;
+  saveSettings();
+  showToast('✅ 饭点时间已保存');
+  renderHome();
+}
+
+function clearAllData() {
+  if (confirm('确定要删除所有餐食照片和记录吗？此操作不可恢复。')) {
+    if (confirm('再次确认：将永久删除全部记录，确定吗？')) {
+      clearAllDataStore();
+      showToast('已清除所有记录');
+      renderHome();
+      renderHistory();
+    }
+  }
+}
+
+// ===== View Switch =====
+function switchView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`view-${name}`).classList.add('active');
+  document.querySelectorAll('.nav-item')[name === 'home' ? 0 : name === 'history' ? 1 : 2].classList.add('active');
+  
+  if (name === 'home') renderHome();
+  else if (name === 'history') renderHistory();
+  else if (name === 'settings') renderSettings();
+}
+
+// ===== Toast =====
+function showToast(msg, duration) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration || 2500);
+}
+
+// ===== Web Push 后台推送 =====
+let pushSupported = ('serviceWorker' in navigator) && ('PushManager' in window);
+let swReg = null;
+
+async function initPush() {
+  if (!pushSupported) return;
+  try {
+    swReg = await navigator.serviceWorker.ready;
+    const sub = await swReg.pushManager.getSubscription();
+    if (sub) document.getElementById('togglePush').classList.add('on');
+  } catch(e) { console.warn('initPush failed', e); }
+}
+
+function getPushBase() {
+  const u = (settings.pushUrl || '').trim();
+  if (!u) return '';
+  return u.replace(/\/+$/, '');
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  const arr = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+  return arr;
+}
+
+async function subscribePush() {
+  const base = getPushBase();
+  if (!base) { showToast('请先在上方填写推送服务地址'); return false; }
+  if (!swReg) swReg = await navigator.serviceWorker.ready;
+  try {
+    const res = await fetch(base + '/api/vapid');
+    if (!res.ok) throw new Error('无法获取服务端公钥');
+    const { publicKey } = await res.json();
+    const sub = await swReg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey)
+    });
+    const r2 = await fetch(base + '/api/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sub)
+    });
+    if (!r2.ok) throw new Error('订阅上报失败');
+    return true;
+  } catch(e) {
+    console.error(e);
+    showToast('订阅失败：' + (e.message || e));
+    return false;
+  }
+}
+
+async function unsubscribePush() {
+  const base = getPushBase();
+  try {
+    if (!swReg) swReg = await navigator.serviceWorker.ready;
+    const sub = await swReg.pushManager.getSubscription();
+    if (sub) {
+      if (base) {
+        try {
+          await fetch(base + '/api/unsubscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(sub)
+          });
+        } catch(e) {}
+      }
+      await sub.unsubscribe();
+    }
+  } catch(e) { console.warn('unsubscribe failed', e); }
+  return true;
+}
+
+async function togglePush() {
+  if (!pushSupported) { showToast('当前浏览器不支持后台推送（建议 Chrome/Edge）'); return; }
+  const toggle = document.getElementById('togglePush');
+  if (toggle.classList.contains('on')) {
+    await unsubscribePush();
+    toggle.classList.remove('on');
+    showToast('已关闭后台推送');
+  } else {
+    const ok = await subscribePush();
+    toggle.classList.toggle('on', ok);
+    if (ok) showToast('✅ 已开启后台推送，关页面也会提醒');
+  }
+}
+
+function savePushUrl() {
+  settings.pushUrl = document.getElementById('pushUrl').value.trim();
+  saveSettings();
+  showToast('✅ 推送服务地址已保存');
+}
+
+// ===== 每周打卡统计 =====
+const WEEK_LABELS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+
+function dateKeyOf(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function computeWeekStats() {
+  const now = new Date();
+  const dow = (now.getDay() + 6) % 7; // 周一=0
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - dow);
+  monday.setHours(0, 0, 0, 0);
+
+  const days = {};
+  let doneCount = 0;
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const k = dateKeyOf(d);
+    const day = memoryData[k] || {};
+    let done = 0; const meals = [];
+    MEALS.forEach(m => {
+      if (day[m.key] && day[m.key].photo) { done++; meals.push(day[m.key]); }
+    });
+    doneCount += done;
+    days[k] = { done, meals };
+  }
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  const rangeText = `${monday.getMonth()+1}/${monday.getDate()} - ${sunday.getMonth()+1}/${sunday.getDate()}日`;
+  return { days, doneCount, target: 21, rangeText };
+}
+
+function renderWeek() {
+  const el = document.getElementById('weekSection');
+  if (!el) return;
+  const stats = computeWeekStats();
+  const keys = Object.keys(stats.days);
+  let cells = '';
+  keys.forEach((k, i) => {
+    const d = stats.days[k];
+    const cls = d.done > 0 ? 'done' : '';
+    let inner = '·';
+    if (d.done > 0) {
+      inner = d.meals[0]
+        ? `<img src="${d.meals[0].photo}" style="width:100%;height:100%;object-fit:cover;">`
+        : '✅';
+    }
+    cells += `<div class="week-cell ${cls}">
+      <div class="dow">${WEEK_LABELS[i]}</div>
+      <div class="box">${inner}</div>
+      <div class="cnt">${d.done}/3</div>
+    </div>`;
+  });
+  const pct = Math.min(100, Math.round(stats.doneCount / stats.target * 100));
+  el.innerHTML = `
+    <div class="week-head">
+      <div class="week-title">📊 本周打卡</div>
+      <div class="date">${stats.rangeText}</div>
+    </div>
+    <div class="week-num"><b>${stats.doneCount}</b><span class="sub">/ ${stats.target} 餐 · 完成率 ${pct}%</span></div>
+    <div class="week-bar"><div class="week-bar-fill" style="width:${pct}%"></div></div>
+    <div class="week-grid">${cells}</div>
+    <button class="week-share-btn" onclick="shareWeekCard()">📤 生成周报图，分享朋友圈</button>
+  `;
+}
+
+// ===== 分享周报图（canvas 合成） =====
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+function drawImageTo(ctx, src, x, y, w, h) {
+  return new Promise((res) => {
+    const img = new Image();
+    img.onload = () => { try { ctx.drawImage(img, x, y, w, h); } catch(e) {} res(); };
+    img.onerror = () => res();
+    img.src = src;
+  });
+}
+
+async function shareWeekCard() {
+  showToast('正在生成周报图…', 1500);
+  const stats = computeWeekStats();
+  const canvas = document.createElement('canvas');
+  const W = 1080, H = 1350;
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = '#FAF7F5'; ctx.fillRect(0, 0, W, H);
+
+  // Header
+  const g = ctx.createLinearGradient(0, 0, W, 280);
+  g.addColorStop(0, '#FF6B35'); g.addColorStop(1, '#FF8C42');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, 280);
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 58px sans-serif';
+  ctx.fillText('🍽️ 本周饭点打卡', 60, 120);
+  ctx.font = '32px sans-serif';
+  ctx.fillText(stats.rangeText, 60, 185);
+
+  // Big number
+  ctx.fillStyle = '#FF6B35';
+  ctx.font = 'bold 130px sans-serif';
+  ctx.fillText(`${stats.doneCount}`, 60, 400);
+  ctx.fillStyle = '#8B8680';
+  ctx.font = '38px sans-serif';
+  ctx.fillText(`/ ${stats.target} 餐`, 280, 400);
+  ctx.fillText(`完成率 ${Math.round(stats.doneCount / stats.target * 100)}%`, 60, 470);
+
+  // 7 day cells
+  const keys = Object.keys(stats.days);
+  const cell = 300, gap = 30, startX = 60, startY = 560;
+  for (let i = 0; i < 7; i++) {
+    const col = i % 2, row = Math.floor(i / 2);
+    const x = startX + col * (cell + gap);
+    const y = startY + row * (cell + gap);
+    ctx.fillStyle = '#fff'; roundRect(ctx, x, y, cell, cell, 24); ctx.fill();
+    const d = stats.days[keys[i]];
+    ctx.fillStyle = '#8B8680'; ctx.font = '30px sans-serif';
+    ctx.fillText(WEEK_LABELS[i], x + 20, y + 50);
+    if (d.done > 0 && d.meals[0]) {
+      try { await drawImageTo(ctx, d.meals[0].photo, x + 20, y + 70, cell - 40, cell - 110); } catch(e) {}
+    }
+    ctx.fillStyle = '#2EC4B6'; ctx.font = '32px sans-serif';
+    ctx.fillText(`${d.done}/3`, x + 20, y + cell - 24);
+  }
+
+  // Footer
+  ctx.fillStyle = '#B5B0AA'; ctx.font = '30px sans-serif';
+  ctx.fillText('饭点打卡 · 每日三餐拍照记录', 60, H - 60);
+
+  canvas.toBlob(async (blob) => {
+    if (!blob) { showToast('生成失败'); return; }
+    const file = new File([blob], '饭点打卡周报.png', { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: '饭点打卡周报', text: '我的本周饭点打卡 🍽️' });
+        return;
+      } catch(e) { if (e && e.name === 'AbortError') return; }
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = '饭点打卡周报.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast('周报图已保存到下载，可发朋友圈 📤');
+  }, 'image/png');
+}
+
+// ===== Init =====
+async function init() {
+  await openDB();
+  await loadAllFromDB();
+  await initPush();
+
+  renderHome();
+  
+  // Countdown timer
+  countdownInterval = setInterval(updateCountdown, 1000);
+  
+  // Check meal reminders every 30 seconds
+  checkInterval = setInterval(checkMealReminders, 30000);
+  
+  // Initial check
+  checkMealReminders();
+  
+  // Re-render when page becomes visible
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      renderHome();
+      if (document.getElementById('view-history').classList.contains('active')) {
+        renderHistory();
+      }
+    }
+  });
+}
+
+// ===== PWA: Service Worker Registration =====
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').then(() => {
+      console.log('Service Worker registered');
+    }).catch(err => console.log('SW registration failed:', err));
+  });
+}
+
+// ===== PWA: Install Prompt =====
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  // Show install banner
+  if (!localStorage.getItem('pwaInstalled')) {
+    setTimeout(() => {
+      showToast('📌 点击「添加到主屏幕」可安装到手机桌面', 4000);
+    }, 3000);
+  }
+});
+
+window.addEventListener('appinstalled', () => {
+  localStorage.setItem('pwaInstalled', '1');
+  deferredPrompt = null;
+  showToast('🎉 已安装到桌面！');
+});
+
+init();
+</script>
+
+</body>
+</html>
