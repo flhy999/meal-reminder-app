@@ -1,0 +1,11 @@
+# 依赖
+node_modules/
+
+# 密钥与运行时数据（切勿提交）
+vapid.json
+subscriptions.json
+.pushed-*
+
+# 系统
+.DS_Store
+*.log
